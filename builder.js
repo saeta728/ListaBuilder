@@ -1,7 +1,9 @@
 // builder.js — ListaBuilder v2.0
 const $ = id => document.getElementById(id);
 
-let totpSecret = "GLXP7MMCBSGJYPEEFJNKKFCM5Y"; // mismo secreto guardado en tu repo o en Local
+// 👇 Inserte aquí su secreto en Base32 (exactamente el que usa su Authenticator)
+let totpSecret = "GLXP7MMCBSGJYPEEFJNKKFCM5Y";  
+
 let localData = { bloqueos: [], excepciones: [], excepcionesHorario: [] };
 
 // --- Inicialización ---
@@ -21,16 +23,17 @@ async function handleLogin() {
   loadData();
 }
 
-// --- Sincronización con SelecTime Local (por mensaje directo) ---
+// --- Sincronización con SelecTime Local (por mensaje externo) ---
 async function loadData() {
   $("syncStatus").textContent = "Sincronizando...";
   try {
-    const extensionId = "YOUR_EXTENSION_ID"; // reemplazar por el ID real de SelecTime Local
-    const response = await chrome.runtime.sendMessage(extensionId, { action: "getData" });
+    const response = await sendMessageToSelecTime({ action: "getData" });
+    if (!response) throw new Error("Sin respuesta de SelecTime");
     localData = response;
     renderTables();
     $("syncStatus").textContent = "✅ Datos sincronizados.";
   } catch (e) {
+    console.warn(e);
     $("syncStatus").textContent = "⚠️ No se pudo contactar con SelecTime Local.";
   }
 }
@@ -38,14 +41,25 @@ async function loadData() {
 async function saveData() {
   $("syncStatus").textContent = "Subiendo a Local...";
   try {
-    const extensionId = "YOUR_EXTENSION_ID";
-    await chrome.runtime.sendMessage(extensionId, { action: "setData", data: localData });
+    await sendMessageToSelecTime({ action: "setData", data: localData });
     $("syncStatus").textContent = "✅ Guardado correctamente.";
   } catch (e) {
+    console.warn(e);
     $("syncStatus").textContent = "⚠️ No se pudo subir datos a Local.";
   }
 }
 
+// --- Comunicación externa con SelecTime ---
+async function sendMessageToSelecTime(message) {
+  return new Promise((resolve, reject) => {
+    // Aquí se usa el ID de la extensión SelecTime Local
+    const extensionId = "lnhggmaankgjfffecmjdcdnefdlfpalg"; // reemplácelo por el ID real DE SELECTIME
+    chrome.runtime.sendMessage(extensionId, message, response => {
+      if (chrome.runtime.lastError) reject(chrome.runtime.lastError);
+      else resolve(response);
+    });
+  });
+}
 
 // --- Sincronización automática en segundo plano ---
 async function autoSyncData() {
