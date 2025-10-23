@@ -1,7 +1,7 @@
 // builder.js — ListaBuilder v2.0
 const $ = id => document.getElementById(id);
 
-let totpSecret = "SECRET_LISTABUILDER"; // mismo secreto guardado en tu repo o en Local
+let totpSecret = Mu7/sYIMjJw8hCpapRRM7g==; // mismo secreto guardado en tu repo o en Local
 let localData = { bloqueos: [], excepciones: [], excepcionesHorario: [] };
 
 // --- Inicialización ---
