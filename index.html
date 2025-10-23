@@ -1,56 +1,88 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ListaBuilder v2.0</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
-
 <body>
-  <!-- Login TOTP -->
-  <div id="loginContainer">
-    <h1>Acceso seguro a ListaBuilder</h1>
-    <p>Ingrese el código generado por Authenticator</p>
-    <input type="text" id="totpInput" placeholder="Código de 6 dígitos" maxlength="6" />
-    <button id="btnLogin">Entrar</button>
-    <p id="statusMsg"></p>
+  <div class="container">
+    <h1>ListaBuilder v2.0</h1>
+
+    <!-- 🔐 Autenticación TOTP -->
+    <div id="loginContainer">
+      <label for="totpInput">Código de acceso (TOTP)</label>
+      <input id="totpInput" type="text" maxlength="6" placeholder="000000" />
+      <button id="btnLogin">Acceder</button>
+      <p id="statusMsg"></p>
+    </div>
+
+    <!-- 🔧 Interfaz principal -->
+    <div id="mainContainer" style="display:none;">
+      <section>
+        <h2>Lista de bloqueos</h2>
+        <button id="btnAdd">Agregar dominio</button>
+        <button id="btnExport">Exportar JSON</button>
+        <button id="btnImport">Importar JSON</button>
+        <table id="tbl">
+          <thead><tr><th>Dominio</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Lista de excepciones</h2>
+        <button id="btnAddEx">Agregar excepción</button>
+        <button id="btnExportEx">Exportar JSON</button>
+        <button id="btnImportEx">Importar JSON</button>
+        <table id="tblEx">
+          <thead><tr><th>Dominio</th><th>URLs</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>Excepciones con horario</h2>
+        <button id="btnAddExH">Agregar excepción con horario</button>
+        <button id="btnExportExH">Exportar JSON</button>
+        <button id="btnImportExH">Importar JSON</button>
+        <table id="tblExH">
+          <thead><tr><th>Dominio</th><th>URLs</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <p id="syncStatus" style="margin-top:10px;color:#555;">Sincronización activa...</p>
+    </div>
   </div>
 
-  <!-- Panel principal -->
-  <div id="mainContainer" style="display:none;">
-    <h1>ListaBuilder — Panel de gestión</h1>
-    <p>Los datos se sincronizan automáticamente con SelecTime Local.</p>
+  <!-- 📦 Modales -->
+  <div id="exModal" class="modal">
+    <h3 id="exModalTitle">Editar excepciones</h3>
+    <div id="exList"></div>
+    <input id="exUrlInput" type="text" placeholder="https://ejemplo.com/..."/>
+    <input id="exTitleInput" type="text" placeholder="Título opcional"/>
+    <button id="btnAddUrl">Agregar URL</button>
+    <hr/>
+    <button id="btnSaveEx">Guardar</button>
+    <button id="btnCancelEx">Cancelar</button>
+  </div>
 
-    <section>
-      <h2>Bloqueos</h2>
-      <button id="btnAdd">Agregar dominio</button>
-      <table id="tbl">
-        <thead><tr><th>Dominio</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Excepciones</h2>
-      <button id="btnAddEx">Agregar excepción</button>
-      <table id="tblEx">
-        <thead><tr><th>Dominio</th><th>URLs</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <section>
-      <h2>Excepciones con horario</h2>
-      <button id="btnAddExH">Agregar excepción con horario</button>
-      <table id="tblExH">
-        <thead><tr><th>Dominio</th><th>URLs</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <hr>
-    <p id="syncStatus">Sincronización pendiente...</p>
+  <div id="exHModal" class="modal">
+    <h3 id="exHModalTitle">Editar excepción con horario</h3>
+    <div id="exHList"></div>
+    <input id="exHUrlInput" type="text" placeholder="https://ejemplo.com/..."/>
+    <input id="exHTitleInput" type="text" placeholder="Título opcional"/>
+    <button id="btnAddUrlH">Agregar URL</button>
+    <hr/>
+    <label>Días (ej: 1,2,3)</label>
+    <input id="exHDiasInput" type="text" placeholder="0=Dom ... 6=Sáb"/>
+    <label>Horarios (ej: 08:00-12:00,14:00-16:00)</label>
+    <input id="exHHorariosInput" type="text" placeholder="HH:MM-HH:MM"/>
+    <hr/>
+    <button id="btnSaveExH">Guardar</button>
+    <button id="btnCancelExH">Cancelar</button>
   </div>
 
   <script src="totp.js"></script>
