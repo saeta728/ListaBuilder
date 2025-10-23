@@ -1,52 +1,108 @@
-// builder.js - ListaBuilder v2.0
-let connected = false;
-let totpSecret = null;
+// builder.js — ListaBuilder v2.0
+const $ = id => document.getElementById(id);
 
-// Comunicación con extensión local
-async function sendToExtension(cmd, data={}) {
-  return new Promise(resolve => {
-    window.postMessage({ type: "LISTABUILDER_CMD", cmd, data }, "*");
-    window.addEventListener("message", e => {
-      if (e.data?.type === "LISTABUILDER_RESP" && e.data.cmd === cmd) resolve(e.data.data);
-    }, { once: true });
-  });
-}
+let totpSecret = "SECRET_LISTABUILDER"; // mismo secreto guardado en tu repo o en Local
+let localData = { bloqueos: [], excepciones: [], excepcionesHorario: [] };
 
-// Iniciar autenticación
-document.getElementById("btnLogin").addEventListener("click", async () => {
-  const code = document.getElementById("totpCode").value.trim();
-  const res = await sendToExtension("verifyTOTP", { code });
-  if (res?.ok) {
-    document.getElementById("loginSection").style.display = "none";
-    document.getElementById("mainUI").style.display = "block";
-    connected = true;
-    loadLists();
-  } else {
-    document.getElementById("loginStatus").textContent = "Código inválido.";
-  }
+// --- Inicialización ---
+window.addEventListener("DOMContentLoaded", async () => {
+  $("btnLogin").addEventListener("click", handleLogin);
+  autoSyncData(); // sincroniza incluso si no se ha iniciado sesión
 });
 
-async function loadLists() {
-  const res = await sendToExtension("getLists");
-  renderAll(res.bloqueos, res.excepciones, res.excepcionesHorario);
+// --- Login ---
+async function handleLogin() {
+  const code = $("totpInput").value.trim();
+  const valid = await verifyTOTP(totpSecret, code);
+  if (!valid) return $("statusMsg").textContent = "Código incorrecto";
+
+  $("loginContainer").style.display = "none";
+  $("mainContainer").style.display = "block";
+  loadData();
 }
 
-function renderAll(blocks, ex, exh) {
-  renderTable("tblBlocks", blocks, ["domain","dias","horarios"]);
-  renderTable("tblEx", ex, ["domain","urls"]);
-  renderTable("tblExH", exh, ["domain","urls","dias","horarios"]);
+// --- Sincronización con SelecTime Local ---
+async function loadData() {
+  $("syncStatus").textContent = "Sincronizando...";
+  try {
+    const res = await fetch("http://localhost:8765/get-data");
+    if (!res.ok) throw new Error("No se pudo conectar con SelecTime Local");
+    localData = await res.json();
+    renderTables();
+    $("syncStatus").textContent = "✅ Datos sincronizados.";
+  } catch {
+    $("syncStatus").textContent = "⚠️ Error al sincronizar con Local.";
+  }
 }
 
-function renderTable(tblId, data, fields) {
-  const tbody = document.querySelector(`#${tblId} tbody`);
-  tbody.innerHTML = "";
-  (data||[]).forEach(row => {
-    const tr = document.createElement("tr");
-    fields.forEach(f => {
-      const td = document.createElement("td");
-      td.textContent = typeof row[f] === "object" ? JSON.stringify(row[f]) : row[f] || "";
-      tr.appendChild(td);
+async function saveData() {
+  $("syncStatus").textContent = "Subiendo a Local...";
+  try {
+    await fetch("http://localhost:8765/set-data", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(localData)
     });
+    $("syncStatus").textContent = "✅ Guardado correctamente.";
+  } catch {
+    $("syncStatus").textContent = "⚠️ Error al subir datos a Local.";
+  }
+}
+
+// --- Sincronización automática en segundo plano ---
+async function autoSyncData() {
+  await loadData();
+  setInterval(async () => { await saveData(); }, 30000); // cada 30 s
+}
+
+// --- Renderización ---
+function renderTables() {
+  renderBlockList(localData.bloqueos);
+  renderExList(localData.excepciones);
+  renderExHList(localData.excepcionesHorario);
+}
+
+function renderBlockList(list) {
+  const tbody = document.querySelector("#tbl tbody");
+  tbody.innerHTML = "";
+  list.forEach(e => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${e.domain}</td><td>${diasToTexto(e.dias)}</td><td>${horariosToTexto(e)}</td>
+    <td><button onclick="delBlock('${e.domain}')">Eliminar</button></td>`;
     tbody.appendChild(tr);
   });
+}
+
+function renderExList(list) {
+  const tbody = document.querySelector("#tblEx tbody");
+  tbody.innerHTML = "";
+  list.forEach(e => {
+    const urls = e.urls.map(u => `<li>${u.title}</li>`).join("");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${e.domain}</td><td><ul>${urls}</ul></td>
+    <td><button onclick="delEx('${e.domain}')">Eliminar</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderExHList(list) {
+  const tbody = document.querySelector("#tblExH tbody");
+  tbody.innerHTML = "";
+  list.forEach(e => {
+    const urls = e.urls.map(u => `<li>${u.title}</li>`).join("");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${e.domain}</td><td><ul>${urls}</ul></td><td>${diasToTexto(e.dias)}</td>
+    <td>${horariosToTexto(e)}</td><td><button onclick="delExH('${e.domain}')">Eliminar</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// --- Utilidades ---
+function diasToTexto(d) {
+  const n = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+  return !d || !d.length ? "Todos" : d.map(x => n[x]).join(", ");
+}
+function horariosToTexto(e) {
+  if (!e.horarios || !e.horarios.length) return "Todo el día";
+  return e.horarios.map(h => `${h.horaInicio}-${h.horaFin}`).join(", ");
 }

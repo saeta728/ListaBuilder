@@ -1,55 +1,60 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8">
   <title>ListaBuilder v2.0</title>
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <div class="container">
-    <h1>ListaBuilder — Administración de Listas</h1>
-
-    <section id="loginSection">
-      <h2>Acceso</h2>
-      <p>Ingrese su código de autenticación:</p>
-      <input id="totpCode" type="text" maxlength="6" placeholder="Código 6 dígitos" />
-      <button id="btnLogin">Ingresar</button>
-      <p id="loginStatus"></p>
-    </section>
-
-    <div id="mainUI" style="display:none;">
-      <section>
-        <h2>Bloqueos</h2>
-        <button id="btnAddBlock">Agregar dominio</button>
-        <table id="tblBlocks">
-          <thead><tr><th>Dominio</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
-
-      <section>
-        <h2>Excepciones</h2>
-        <button id="btnAddEx">Agregar excepción</button>
-        <table id="tblEx">
-          <thead><tr><th>Dominio</th><th>URLs</th><th>Acciones</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
-
-      <section>
-        <h2>Excepciones con horario</h2>
-        <button id="btnAddExH">Agregar excepción con horario</button>
-        <table id="tblExH">
-          <thead><tr><th>Dominio</th><th>URLs</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
-    </div>
+  <!-- Login TOTP -->
+  <div id="loginContainer">
+    <h1>Acceso seguro a ListaBuilder</h1>
+    <p>Ingrese el código generado por Authenticator</p>
+    <input type="text" id="totpInput" placeholder="Código de 6 dígitos" maxlength="6" />
+    <button id="btnLogin">Entrar</button>
+    <p id="statusMsg"></p>
   </div>
 
-  <script src="titleFetcher.js"></script>
+  <!-- Panel principal -->
+  <div id="mainContainer" style="display:none;">
+    <h1>ListaBuilder — Panel de gestión</h1>
+    <p>Los datos se sincronizan automáticamente con SelecTime Local.</p>
+
+    <section>
+      <h2>Bloqueos</h2>
+      <button id="btnAdd">Agregar dominio</button>
+      <table id="tbl">
+        <thead><tr><th>Dominio</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Excepciones</h2>
+      <button id="btnAddEx">Agregar excepción</button>
+      <table id="tblEx">
+        <thead><tr><th>Dominio</th><th>URLs</th><th>Acciones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Excepciones con horario</h2>
+      <button id="btnAddExH">Agregar excepción con horario</button>
+      <table id="tblExH">
+        <thead><tr><th>Dominio</th><th>URLs</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <hr>
+    <p id="syncStatus">Sincronización pendiente...</p>
+  </div>
+
   <script src="totp.js"></script>
+  <script src="titleFetcher.js"></script>
   <script src="builder.js"></script>
 </body>
 </html>
