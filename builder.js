@@ -21,33 +21,31 @@ async function handleLogin() {
   loadData();
 }
 
-// --- Sincronización con SelecTime Local ---
+// --- Sincronización con SelecTime Local (por mensaje directo) ---
 async function loadData() {
   $("syncStatus").textContent = "Sincronizando...";
   try {
-    const res = await fetch("http://localhost:8765/get-data");
-    if (!res.ok) throw new Error("No se pudo conectar con SelecTime Local");
-    localData = await res.json();
+    const extensionId = "YOUR_EXTENSION_ID"; // reemplazar por el ID real de SelecTime Local
+    const response = await chrome.runtime.sendMessage(extensionId, { action: "getData" });
+    localData = response;
     renderTables();
     $("syncStatus").textContent = "✅ Datos sincronizados.";
-  } catch {
-    $("syncStatus").textContent = "⚠️ Error al sincronizar con Local.";
+  } catch (e) {
+    $("syncStatus").textContent = "⚠️ No se pudo contactar con SelecTime Local.";
   }
 }
 
 async function saveData() {
   $("syncStatus").textContent = "Subiendo a Local...";
   try {
-    await fetch("http://localhost:8765/set-data", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(localData)
-    });
+    const extensionId = "YOUR_EXTENSION_ID";
+    await chrome.runtime.sendMessage(extensionId, { action: "setData", data: localData });
     $("syncStatus").textContent = "✅ Guardado correctamente.";
-  } catch {
-    $("syncStatus").textContent = "⚠️ Error al subir datos a Local.";
+  } catch (e) {
+    $("syncStatus").textContent = "⚠️ No se pudo subir datos a Local.";
   }
 }
+
 
 // --- Sincronización automática en segundo plano ---
 async function autoSyncData() {
