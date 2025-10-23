@@ -1,0 +1,8 @@
+{
+  "name": "ListaBuilder",
+  "version": "2.0",
+  "description": "Administrador de listas para SelecTime",
+  "manifest_version": 3,
+  "icons": { "128": "icon.png" },
+  "permissions": ["storage"]
+}

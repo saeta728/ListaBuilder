@@ -1,100 +1,86 @@
-// builder.js — Lógica principal de ListaBuilder
+// builder.js — UI ListaBuilder v2.0 (sin conexión directa a GitHub)
 const $ = id => document.getElementById(id);
 let totpSecret = null;
-let localData = { bloqueos: [], excepciones: [], excepcionesHorario: [] };
+let lists = { bloqueos: [], excepciones: [], excepcionesHorario: [] };
 
-// --- Inicialización ---
-window.addEventListener("DOMContentLoaded", async () => {
-  await initTOTP();
-  $("btnLogin").addEventListener("click", handleLogin);
-});
-
-// --- Login ---
-async function initTOTP() {
-  const url = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${SECRET_FILE}`;
-  const resp = await fetch(url, { headers: { Authorization: `token ${GITHUB_TOKEN}` } });
-  if (resp.ok) {
-    const json = await resp.json();
-    totpSecret = JSON.parse(atob(json.content)).secret;
-  } else {
-    totpSecret = await generateSecret();
-    await pushNewSecret(totpSecret);
-  }
+async function verifyTOTP(code) {
+  const expected = await generateTOTP(totpSecret);
+  return expected === code.trim();
 }
 
-async function pushNewSecret(secret) {
-  const content = btoa(JSON.stringify({ secret }));
-  await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${SECRET_FILE}`, {
-    method: "PUT",
-    headers: { Authorization: `token ${GITHUB_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ message: "Crear nueva clave TOTP", content }),
+// comunicación con extensión local
+function sendToLocal(action, payload={}) {
+  return new Promise((resolve) => {
+    window.postMessage({ from:"ListaBuilder", action, payload }, "*");
+    window.addEventListener("message", (e)=>{
+      if(e.data.from==="SelecTime" && e.data.action===action+"_response"){
+        resolve(e.data.payload);
+      }
+    }, { once:true });
   });
 }
 
-async function handleLogin() {
-  const code = $("totpInput").value.trim();
-  const valid = await verifyTOTP(totpSecret, code);
-  if (!valid) return $("statusMsg").textContent = "Código incorrecto";
-  $("loginContainer").style.display = "none";
-  $("mainContainer").style.display = "block";
-  loadData();
+async function loadLists() {
+  const data = await sendToLocal("getLists");
+  lists = data || { bloqueos:[], excepciones:[], excepcionesHorario:[] };
+  renderAll();
 }
 
-// --- Carga de datos ---
-async function loadData() {
-  $("syncStatus").textContent = "Sincronizando...";
-  localData = await fetchRemoteData();
-  renderTables();
-  $("syncStatus").textContent = "✅ Datos sincronizados.";
-}
-
-// --- Guardar datos ---
-async function saveData() {
-  $("syncStatus").textContent = "Subiendo a GitHub...";
-  await pushDataToGitHub(localData);
-  $("syncStatus").textContent = "✅ Guardado correctamente.";
-}
-
-// --- Renderización ---
-function renderTables() {
-  renderBlockList(localData.bloqueos);
-  renderExList(localData.excepciones);
-  renderExHList(localData.excepcionesHorario);
+function renderAll() {
+  renderBlockList(lists.bloqueos);
+  renderExList(lists.excepciones);
+  renderExHList(lists.excepcionesHorario);
 }
 
 function renderBlockList(list) {
-  const tbody = document.querySelector("#tbl tbody");
+  const tbody = $("tbl").querySelector("tbody");
   tbody.innerHTML = "";
-  list.forEach(e => {
+  for (const e of list) {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${e.domain}</td><td>${diasToTexto(e.dias)}</td><td>${horariosToTexto(e)}</td><td><button onclick="delBlock('${e.domain}')">Eliminar</button></td>`;
+    tr.innerHTML = `<td>${e.domain}</td><td>${(e.dias||[]).join(",")}</td>
+      <td>${(e.horarios||[]).map(h=>h.horaInicio+"-"+h.horaFin).join(",")}</td>
+      <td><button class='edit'>Editar</button><button class='del'>Eliminar</button></td>`;
     tbody.appendChild(tr);
-  });
+  }
 }
 
-// --- Añadir excepción con autocompletado ---
-window.addEventListener("click", async e => {
-  if (e.target.id === "btnAddEx") {
-    const d = prompt("Dominio:");
-    if (!d) return;
-    const u = prompt("Ingrese URL:");
-    if (!u) return;
-    const title = await fetchTitleFromURL(u);
-    if (!localData.excepciones) localData.excepciones = [];
-    const idx = localData.excepciones.findIndex(x => x.domain === d);
-    if (idx === -1) localData.excepciones.push({ domain: d, urls: [{ url: u, title }] });
-    else localData.excepciones[idx].urls.push({ url: u, title });
-    renderTables();
-    saveData();
+function renderExList(list) {
+  const tbody = $("tblEx").querySelector("tbody");
+  tbody.innerHTML = "";
+  for (const e of list) {
+    const tr = document.createElement("tr");
+    const urls = (e.urls||[]).map(u=>`<div>${u.title||"(sin título)"} — <a href="${u.url}" target="_blank">${u.url}</a></div>`).join("");
+    tr.innerHTML = `<td>${e.domain}</td><td>${urls}</td>
+      <td><button class='edit'>Editar</button><button class='del'>Eliminar</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderExHList(list) {
+  const tbody = $("tblExH").querySelector("tbody");
+  tbody.innerHTML = "";
+  for (const e of list) {
+    const urls = (e.urls||[]).map(u=>`<div>${u.title||"(sin título)"} — <a href="${u.url}" target="_blank">${u.url}</a></div>`).join("");
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${e.domain}</td><td>${urls}</td><td>${(e.dias||[]).join(",")}</td>
+      <td>${(e.horarios||[]).map(h=>h.horaInicio+"-"+h.horaFin).join(",")}</td>
+      <td><button class='edit'>Editar</button><button class='del'>Eliminar</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+$("btnLogin").addEventListener("click", async ()=>{
+  const code = $("totpInput").value;
+  if(await verifyTOTP(code)) {
+    $("authArea").style.display="none";
+    $("mainUI").style.display="block";
+    loadLists();
+  } else {
+    alert("Código incorrecto");
   }
 });
 
-// --- Utilidades ---
-function diasToTexto(d) {
-  const n = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-  return !d || !d.length ? "Todos" : d.map(x => n[x]).join(", ");
-}
-function horariosToTexto(e) {
-  if (!e.horarios || !e.horarios.length) return "Todo el día";
-  return e.horarios.map(h => `${h.horaInicio}-${h.horaFin}`).join(", ");
-}
+window.addEventListener("load", async ()=>{
+  const res = await sendToLocal("getTotpSecret");
+  totpSecret = res.secret;
+});
