@@ -1,33 +1,35 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ListaBuilder v2.0</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <div class="container">
-    <h1>ListaBuilder — Administración</h1>
+    <h1>ListaBuilder — Administración de Listas</h1>
 
-    <div id="authArea">
-      <label for="totpInput">Código de acceso (Authenticator)</label>
-      <input id="totpInput" type="text" maxlength="6" />
-      <button id="btnLogin">Entrar</button>
-    </div>
+    <section id="loginSection">
+      <h2>Acceso</h2>
+      <p>Ingrese su código de autenticación:</p>
+      <input id="totpCode" type="text" maxlength="6" placeholder="Código 6 dígitos" />
+      <button id="btnLogin">Ingresar</button>
+      <p id="loginStatus"></p>
+    </section>
 
     <div id="mainUI" style="display:none;">
       <section>
-        <h2>Lista de bloqueos</h2>
-        <button id="btnAdd">Agregar dominio</button>
-        <table id="tbl">
+        <h2>Bloqueos</h2>
+        <button id="btnAddBlock">Agregar dominio</button>
+        <table id="tblBlocks">
           <thead><tr><th>Dominio</th><th>Días</th><th>Horario</th><th>Acciones</th></tr></thead>
           <tbody></tbody>
         </table>
       </section>
 
       <section>
-        <h2>Lista de excepciones</h2>
+        <h2>Excepciones</h2>
         <button id="btnAddEx">Agregar excepción</button>
         <table id="tblEx">
           <thead><tr><th>Dominio</th><th>URLs</th><th>Acciones</th></tr></thead>
@@ -46,8 +48,8 @@
     </div>
   </div>
 
-  <script src="totp.js"></script>
   <script src="titleFetcher.js"></script>
+  <script src="totp.js"></script>
   <script src="builder.js"></script>
 </body>
 </html>
